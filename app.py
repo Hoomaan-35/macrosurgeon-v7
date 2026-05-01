@@ -6,6 +6,12 @@ st.set_page_config(page_title="MacroSurgeon V7", page_icon="✂️", layout="cen
 
 st.markdown("""
     <style>
+    @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;700&display=swap');
+    
+    * {
+        font-family: 'Vazirmatn', sans-serif !important;
+    }
+    
     .main { background-color: #0e1117; }
     .stSlider [data-baseweb="slider"] { margin-bottom: 25px; }
     .metric-card { background-color: #1e2130; padding: 15px; border-radius: 10px; border-left: 5px solid #38bdf8; }
