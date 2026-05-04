@@ -1,87 +1,79 @@
 import streamlit as st
-from datetime import datetime
 import urllib.parse
 
-# تنظیمات صفحه برای موبایل
-st.set_page_config(page_title="MacroSurgeon V9", page_icon="🏦", layout="centered")
+# تنظیمات حرفه‌ای V11
+st.set_page_config(page_title="MacroSurgeon V11 Emperor", page_icon="👑", layout="wide")
 
 st.markdown("""
     <style>
-    .stNumberInput div div input { font-weight: bold; color: #38bdf8; }
-    .metric-container { background-color: #1e2130; padding: 15px; border-radius: 12px; border-left: 5px solid #38bdf8; }
-    .stSlider [data-baseweb="slider"] { margin-bottom: 20px; }
+    .stNumberInput input { color: #facc15 !important; font-size: 20px !important; }
+    .yield-card { background: #111827; padding: 15px; border-radius: 10px; border-top: 4px solid #facc15; }
     </style>
     """, unsafe_allow_html=True)
 
-st.title("✂️ جراحی کلان V9: نسخه فول استراتژیک")
-st.write("تحلیل جامع ۲۰۲۶: از JOLTS تا تراز تجاری و بازسازی")
+st.title("👑 مرکز فرماندهی V11: نسخه امپراتور")
+st.write("تحلیل جامع ۲۰۲۶: منحنی بازدهی، بهره واقعی و تراز تجاری")
 
-# --- بخش ورودی‌ها ---
-st.header("🩺 علائم حیاتی (داده‌های دقیق)")
-
-def sync_input(label, min_val, max_val, default_val, step, help_text=""):
-    col_s, col_t = st.columns([2, 1])
-    with col_t:
-        val_text = st.number_input(f"عدد {label}", value=default_val, step=step, key=f"t_{label}", help=help_text)
-    with col_s:
-        val_slider = st.slider(f"تغییر {label}", min_val, max_val, val_text, step, key=f"s_{label}")
-    return val_slider
-
-# ورودی‌های اصلی
-ir = sync_input("نرخ بهره (%)", 0.0, 10.0, 3.75, 0.25)
-cpi = sync_input("تورم CPI (%)", 0.0, 15.0, 3.0, 0.1)
-ppi = sync_input("تورم PPI (%)", 0.0, 15.0, 3.5, 0.1)
-
-# اضافه شدن تراز تجاری (Trade Balance)
-# عدد منفی نشان دهنده کسری تجاری (Deficit) است که برای آمریکا معمول است.
-trade_bal = sync_input("تراز تجاری (میلیارد دلار)", -150.0, 50.0, -57.3, 0.1, "مثبت یعنی مازاد، منفی یعنی کسری تجاری")
-
-jolts = sync_input("JOLTS (میلیون شغل)", 0.0, 15.0, 6.87, 0.01)
-pmi = sync_input("شاخص PMI", 30.0, 70.0, 48.0, 0.5)
+# --- گام ۱: استخراج داده‌های زنده ---
+with st.expander("🔍 استخراج داده از Gemini (نسخه ارتقا یافته)", expanded=False):
+    fetch_prompt = """
+    لطفاً آمار دقیق می ۲۰۲۶ را استخراج کن:
+    - Fed Rate | 2-Year Yield | 10-Year Yield
+    - CPI & PPI Inflation | JOLTS Job Openings
+    - Trade Balance | PMI Index
+    فقط اعداد را لیست کن.
+    """
+    st.code(fetch_prompt)
+    st.link_button("🚀 باز کردن Gemini", "https://gemini.google.com/app")
 
 st.markdown("---")
-fed_tone = st.radio("لحن فدرال رزرو (وارش/پاول):", ["شاهین (Hawkish) 🦅", "کبوتر (Doveish) 🕊️"])
-geo_risk = st.select_slider("ریسک ژئوپلیتیک و ناتو", options=["ثبات/صلح", "تنش محدود", "بحران/جنگ"])
 
-# --- محاسبات منطقی ارتقا یافته ---
+# --- گام ۲: ورودی‌های جراحی ---
+col1, col2, col3 = st.columns(3)
+
+def dual_input(col, label, min_val, max_val, default_val, step, key):
+    with col:
+        v_num = st.number_input(label, value=default_val, step=step, key=f"n_{key}")
+        v_slip = st.slider(f"تنظیم {label}", min_val, max_val, v_num, step, key=f"s_{key}")
+        return v_slip
+
+with col1:
+    y2 = dual_input(col1, "بازدهی ۲ ساله (%)", 0.0, 7.0, 4.8, 0.05, "y2")
+    y10 = dual_input(col1, "بازدهی ۱۰ ساله (%)", 0.0, 7.0, 4.2, 0.05, "y10")
+
+with col2:
+    cpi = dual_input(col2, "تورم CPI (%)", 0.0, 10.0, 3.0, 0.1, "cpi")
+    ppi = dual_input(col2, "تورم PPI (%)", 0.0, 10.0, 3.5, 0.1, "ppi")
+
+with col3:
+    trade_bal = dual_input(col3, "تراز تجاری (B$)", -150.0, 50.0, -57.3, 0.5, "tb")
+    jolts = dual_input(col3, "JOLTS (M)", 0.0, 15.0, 6.87, 0.1, "jolts")
+
+# --- محاسبات استراتژیک V11 ---
+yield_spread = y10 - y2
+real_yield = y10 - cpi
+
 st.markdown("---")
-st.header("📊 خروجی جراحی (پتانسیل بازار)")
+c_res1, c_res2, c_res3 = st.columns(3)
 
-# منطق دلار: بهره بالا + تراز تجاری رو به بهبود + JOLTS بالا = دلار پادشاه
-dxy_logic = (ir * 2) + (5 if fed_tone == "شاهین (Hawkish) 🦅" else -5) + (jolts - 6) + (trade_bal / 20)
-# منطق طلا: تورم بالا + ریسک جنگ - بهره بالا - تراز تجاری قوی (دلار قوی)
-gold_logic = (cpi * 2) + (10 if geo_risk == "بحران/جنگ" else -10) - (ir * 2.5) - (trade_bal / 20)
+with c_res1:
+    status = "🔴 وارونگی (خطر رکود)" if yield_spread < 0 else "🟢 عادی"
+    st.metric("منحنی بازدهی (10Y-2Y)", f"{yield_spread:.2f}%", status)
 
-c1, c2 = st.columns(2)
-with c1:
-    st.metric("پتانسیل دلار (DXY)", f"{dxy_logic:.1f}", delta="تقویت صادرات" if trade_bal > -55 else "ضعف تجاری", delta_color="normal")
-with c2:
-    st.metric("پتانسیل طلا (XAU)", f"{gold_logic:.1f}", delta="ریزش به ۳۱۰۰" if gold_logic < 0 else "حمایت موقت")
+with c_res2:
+    st.metric("نرخ بهره واقعی", f"{real_yield:.2f}%", "جذاب برای طلا" if real_yield < 0 else "فشار بر طلا")
 
-# --- بخش هوش مصنوعی (Gemini Center) ---
-st.markdown("---")
-st.header("🤖 مرکز تحلیل هوشمند Gemini")
+with c_res3:
+    dxy_score = (y2 * 1.2) + (trade_bal / 20) + (jolts - 6)
+    st.metric("شاخص قدرت دلار (DXY)", f"{dxy_score:.1f}")
 
-gemini_prompt = f"""
-تحلیل کلان برای ترید در می ۲۰۲۶:
-داده‌ها:
-- نرخ بهره: {ir}% | تورم (CPI): {cpi}% | تورم تولید (PPI): {ppi}%
-- تراز تجاری آمریکا: {trade_bal} میلیارد دلار (Trade Balance)
-- بازار کار (JOLTS): {jolts} میلیون شغل
-- شاخص تولید (PMI): {pmi} | لحن فدرال رزرو: {fed_tone}
-- ریسک ژئوپلیتیک: {geo_risk}
-
-سوالات تخصصی برای تحلیل:
-۱. با توجه به تراز تجاری {trade_bal} میلیارد دلاری، آیا تقاضای فیزیکی برای دلار جهت بازسازی و صادرات تسلیحات ناتو تأمین می‌شود؟
-۲. آیا عدد {jolts} میلیونی JOLTS به کوین وارش اجازه جراحی و کاهش نرخ را می‌دهد یا او را در موضع شاهین نگه می‌دارد؟
-۳. روند انس طلا با توجه به فشار دلار و کاهش هزینه‌های ناتو به سمت ۳۱۰۰ دلار است یا خیر؟
+# --- گام ۴: پرامپت نهایی ---
+final_prompt = f"""
+تحلیل امپراتور (V11):
+- بازدهی ۲ ساله: {y2}% | ۱۰ ساله: {y10}% (تفاوت: {yield_spread:.2f}%)
+- بهره واقعی: {real_yield:.2f}% | تورم تولید (PPI): {ppi}%
+- تجارت: {trade_bal}B$ | اشتغال: {jolts}M
+با توجه به وارونگی منحنی بازدهی و سطح بهره واقعی، استراتژی دقیق برای دلار و طلا در بازه ماه می ۲۰۲۶ چیست؟
 """
-
-st.text_area("پرومپت آماده (کپی کن):", gemini_prompt, height=250)
-
-if st.button("🚀 انتقال به Gemini"):
-    encoded_prompt = urllib.parse.quote(gemini_prompt)
-    # لینک مستقیم به اپلیکیشن جمینای
-    st.markdown(f'<a href="https://gemini.google.com/app" target="_blank">۱. اینجا کلیک کن و در جمینای Paste کن</a>', unsafe_allow_html=True)
-
-st.info(f"💡 تحلیل جراح: تراز تجاری فعلی تو ({trade_bal}) نشان می‌دهد که آمریکا {'هنوز در حال خروج نقدینگی است' if trade_bal < -60 else 'در حال بهبود وضعیت صادرات است'}. بهبود این عدد مستقیماً قیمت طلا را سرکوب می‌کند.")
+st.subheader("🤖 استراتژی نهایی Gemini")
+st.text_area("کپی برای تحلیل نهایی:", final_prompt, height=150)
