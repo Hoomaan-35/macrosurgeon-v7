@@ -1,79 +1,101 @@
 import streamlit as st
 import urllib.parse
 
-# تنظیمات حرفه‌ای V11
-st.set_page_config(page_title="MacroSurgeon V11 Emperor", page_icon="👑", layout="wide")
+# --- تنظیمات صفحه ---
+st.set_page_config(page_title="MacroSurgeon V12 Ultimate", page_icon="🏦", layout="wide")
 
 st.markdown("""
     <style>
-    .stNumberInput input { color: #facc15 !important; font-size: 20px !important; }
-    .yield-card { background: #111827; padding: 15px; border-radius: 10px; border-top: 4px solid #facc15; }
+    .stNumberInput input { color: #10b981 !important; font-size: 18px !important; font-weight: bold; }
+    .stNumberInput label { font-size: 14px !important; color: #e2e8f0; }
+    .metric-box { background-color: #1e293b; padding: 15px; border-radius: 8px; border-left: 4px solid #38bdf8; margin-bottom: 10px;}
     </style>
     """, unsafe_allow_html=True)
 
-st.title("👑 مرکز فرماندهی V11: نسخه امپراتور")
-st.write("تحلیل جامع ۲۰۲۶: منحنی بازدهی، بهره واقعی و تراز تجاری")
+st.title("🏦 مرکز فرماندهی V12: نسخه نهایی (Ultimate)")
+st.write("بدون اسلایدر - فقط ورودی‌های دقیق عددی برای معامله‌گران حرفه‌ای")
 
-# --- گام ۱: استخراج داده‌های زنده ---
-with st.expander("🔍 استخراج داده از Gemini (نسخه ارتقا یافته)", expanded=False):
+# --- گام ۱: دریافت داده‌ها از جمینای ---
+with st.expander("🔍 استخراج داده‌های زنده از Gemini", expanded=False):
     fetch_prompt = """
-    لطفاً آمار دقیق می ۲۰۲۶ را استخراج کن:
-    - Fed Rate | 2-Year Yield | 10-Year Yield
-    - CPI & PPI Inflation | JOLTS Job Openings
-    - Trade Balance | PMI Index
-    فقط اعداد را لیست کن.
+    لطفاً جدیدترین آمارهای اقتصادی آمریکا (منتشر شده در ماه جاری) را جستجو کن و فقط اعداد را لیست کن:
+    1. Fed Rate
+    2. 2-Year Treasury Yield
+    3. 10-Year Treasury Yield
+    4. Inflation Rate (CPI)
+    5. PPI (Producer Price Index)
+    6. JOLTS Job Openings
+    7. Initial Jobless Claims (مدعیان بیکاری به هزار نفر)
+    8. Trade Balance (تراز تجاری به میلیارد دلار)
+    9. PMI (Manufacturing Index)
     """
-    st.code(fetch_prompt)
-    st.link_button("🚀 باز کردن Gemini", "https://gemini.google.com/app")
+    st.code(fetch_prompt, language="text")
+    st.link_button("🚀 کپی و باز کردن Gemini برای دریافت داده‌ها", "https://gemini.google.com/app")
 
 st.markdown("---")
+st.header("🩺 گام ۲: ورود داده‌های اقتصادی")
 
-# --- گام ۲: ورودی‌های جراحی ---
+# ستون‌بندی برای ورودی‌ها (۳ ستون)
 col1, col2, col3 = st.columns(3)
 
-def dual_input(col, label, min_val, max_val, default_val, step, key):
-    with col:
-        v_num = st.number_input(label, value=default_val, step=step, key=f"n_{key}")
-        v_slip = st.slider(f"تنظیم {label}", min_val, max_val, v_num, step, key=f"s_{key}")
-        return v_slip
-
 with col1:
-    y2 = dual_input(col1, "بازدهی ۲ ساله (%)", 0.0, 7.0, 4.8, 0.05, "y2")
-    y10 = dual_input(col1, "بازدهی ۱۰ ساله (%)", 0.0, 7.0, 4.2, 0.05, "y10")
+    st.subheader("سیاست پولی و اوراق")
+    ir = st.number_input("نرخ بهره فدرال (Fed Rate %)", value=3.75, step=0.25)
+    y2 = st.number_input("بازدهی ۲ ساله (2Y Yield %)", value=4.80, step=0.05)
+    y10 = st.number_input("بازدهی ۱۰ ساله (10Y Yield %)", value=4.20, step=0.05)
 
 with col2:
-    cpi = dual_input(col2, "تورم CPI (%)", 0.0, 10.0, 3.0, 0.1, "cpi")
-    ppi = dual_input(col2, "تورم PPI (%)", 0.0, 10.0, 3.5, 0.1, "ppi")
+    st.subheader("تورم و صنعت")
+    cpi = st.number_input("نرخ تورم (Inflation Rate / CPI %)", value=3.0, step=0.1)
+    ppi = st.number_input("تورم تولیدکننده (PPI %)", value=3.5, step=0.1)
+    pmi = st.number_input("شاخص تولید (PMI)", value=48.0, step=0.5, help="بالای 50 یعنی رونق، زیر 50 یعنی رکود صنعتی")
 
 with col3:
-    trade_bal = dual_input(col3, "تراز تجاری (B$)", -150.0, 50.0, -57.3, 0.5, "tb")
-    jolts = dual_input(col3, "JOLTS (M)", 0.0, 15.0, 6.87, 0.1, "jolts")
+    st.subheader("بازار کار و تجارت")
+    jolts = st.number_input("فرصت‌های شغلی (JOLTS میلیون)", value=6.87, step=0.05)
+    unemp_claims = st.number_input("مدعیان بیکاری (هزار نفر)", value=215.0, step=1.0, help="معمولا بین 200 تا 300 هزار است")
+    trade_bal = st.number_input("تراز تجاری (B$ میلیارد دلار)", value=-57.3, step=0.5)
 
-# --- محاسبات استراتژیک V11 ---
-yield_spread = y10 - y2
-real_yield = y10 - cpi
-
+# --- گام ۳: محاسبات و خروجی استراتژیک ---
 st.markdown("---")
-c_res1, c_res2, c_res3 = st.columns(3)
+st.header("📊 گام ۳: داشبورد جراحی کلان")
+
+# محاسبات کلیدی
+yield_spread = y10 - y2  # منحنی بازدهی
+real_yield = y10 - cpi   # بهره واقعی
+
+c_res1, c_res2, c_res3, c_res4 = st.columns(4)
 
 with c_res1:
-    status = "🔴 وارونگی (خطر رکود)" if yield_spread < 0 else "🟢 عادی"
-    st.metric("منحنی بازدهی (10Y-2Y)", f"{yield_spread:.2f}%", status)
+    status_curve = "🔴 وارونگی (رکود)" if yield_spread < 0 else "🟢 عادی"
+    st.metric("منحنی بازدهی (10Y-2Y)", f"{yield_spread:.2f}%", status_curve, delta_color="off")
 
 with c_res2:
-    st.metric("نرخ بهره واقعی", f"{real_yield:.2f}%", "جذاب برای طلا" if real_yield < 0 else "فشار بر طلا")
+    status_real = "🟢 قاتل طلا" if real_yield > 0 else "🔴 جذاب برای طلا"
+    st.metric("بهره واقعی (Real Yield)", f"{real_yield:.2f}%", status_real, delta_color="off")
 
 with c_res3:
-    dxy_score = (y2 * 1.2) + (trade_bal / 20) + (jolts - 6)
-    st.metric("شاخص قدرت دلار (DXY)", f"{dxy_score:.1f}")
+    status_margin = "🔴 فشار روی بورس" if ppi > cpi else "🟢 سودآوری امن"
+    st.metric("حاشیه سود شرکت‌ها", f"PPI vs CPI", status_margin, delta_color="off")
 
-# --- گام ۴: پرامپت نهایی ---
+with c_res4:
+    labor_health = "🔴 شکننده" if (jolts < 6.0 or unemp_claims > 250) else "🟢 قدرتمند (شاهین)"
+    st.metric("وضعیت بازار کار", f"{unemp_claims}k مدعی", labor_health, delta_color="off")
+
+# --- گام ۴: پرامپت نهایی تحلیل‌گر هوش مصنوعی ---
+st.markdown("---")
+st.header("🤖 گام ۴: دریافت استراتژی نهایی از جمینای")
+
 final_prompt = f"""
-تحلیل امپراتور (V11):
-- بازدهی ۲ ساله: {y2}% | ۱۰ ساله: {y10}% (تفاوت: {yield_spread:.2f}%)
-- بهره واقعی: {real_yield:.2f}% | تورم تولید (PPI): {ppi}%
-- تجارت: {trade_bal}B$ | اشتغال: {jolts}M
-با توجه به وارونگی منحنی بازدهی و سطح بهره واقعی، استراتژی دقیق برای دلار و طلا در بازه ماه می ۲۰۲۶ چیست؟
+من یک تریدر هستم. لطفاً با توجه به این داده‌های قطعی (V12) بازار را تحلیل کن:
+- سیاست پولی: نرخ بهره {ir}% | اوراق ۲ ساله: {y2}% | اوراق ۱۰ ساله: {y10}%
+- تورم: تورم مصرف‌کننده (CPI) {cpi}% | تورم تولید (PPI) {ppi}%
+- صنعت و تجارت: شاخص تولید (PMI) {pmi} | تراز تجاری {trade_bal} میلیارد دلار
+- بازار کار: فرصت‌های شغلی (JOLTS) {jolts} میلیون | مدعیان بیکاری {unemp_claims} هزار نفر
+
+با توجه به فاصله بازدهی (Yield Curve) که {yield_spread:.2f}% است و بهره واقعی {real_yield:.2f}%:
+۱. وضعیت رکود یا رشد اقتصاد آمریکا چگونه است؟
+۲. بهترین استراتژی برای معامله روی شاخص دلار (DXY) و طلای جهانی چیست؟
+۳. آیا فدرال رزرو با این داده‌های بازار کار و تورم، توانایی کاهش نرخ بهره را دارد؟
 """
-st.subheader("🤖 استراتژی نهایی Gemini")
-st.text_area("کپی برای تحلیل نهایی:", final_prompt, height=150)
+st.text_area("این متن بر اساس اعداد شما ساخته شده. کپی کنید و به جمینای بدهید:", final_prompt, height=250)
