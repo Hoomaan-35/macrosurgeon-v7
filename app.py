@@ -1,100 +1,87 @@
 import streamlit as st
 from datetime import datetime
+import urllib.parse
 
-# تنظیمات تم و صفحه برای موبایل
-st.set_page_config(page_title="MacroSurgeon V7", page_icon="✂️", layout="centered")
+# تنظیمات صفحه برای موبایل
+st.set_page_config(page_title="MacroSurgeon V9", page_icon="🏦", layout="centered")
 
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;700&display=swap');
-    
-    * {
-        font-family: 'Vazirmatn', sans-serif !important;
-    }
-    
-    .main { background-color: #0e1117; }
-    .stSlider [data-baseweb="slider"] { margin-bottom: 25px; }
-    .metric-card { background-color: #1e2130; padding: 15px; border-radius: 10px; border-left: 5px solid #38bdf8; }
+    .stNumberInput div div input { font-weight: bold; color: #38bdf8; }
+    .metric-container { background-color: #1e2130; padding: 15px; border-radius: 12px; border-left: 5px solid #38bdf8; }
+    .stSlider [data-baseweb="slider"] { margin-bottom: 20px; }
     </style>
     """, unsafe_allow_html=True)
 
-st.title("✂️ جراحی بزرگ: داشبورد وارش")
-st.write("تحلیل زنده بر اساس دکترین جدید اقتصادی ۲۰۲۶")
+st.title("✂️ جراحی کلان V9: نسخه فول استراتژیک")
+st.write("تحلیل جامع ۲۰۲۶: از JOLTS تا تراز تجاری و بازسازی")
 
-# --- بخش اول: تایمر استراتژیک ---
-st.sidebar.header("⏳ شمارش معکوس جراحی")
-next_meeting = datetime(2026, 5, 20)
-days_left = (next_meeting - datetime.now()).days
-st.sidebar.metric("روز تا جلسه فدرال رزرو", f"{days_left} روز")
-st.sidebar.info("کوین وارش در ۱۵ می صندلی را تحویل می‌گیرد.")
+# --- بخش ورودی‌ها ---
+st.header("🩺 علائم حیاتی (داده‌های دقیق)")
 
-# --- بخش دوم: ورودی‌های کلیدی ---
-st.header("🩺 ورودی‌های زنده بازار")
-col1, col2 = st.columns(2)
+def sync_input(label, min_val, max_val, default_val, step, help_text=""):
+    col_s, col_t = st.columns([2, 1])
+    with col_t:
+        val_text = st.number_input(f"عدد {label}", value=default_val, step=step, key=f"t_{label}", help=help_text)
+    with col_s:
+        val_slider = st.slider(f"تغییر {label}", min_val, max_val, val_text, step, key=f"s_{label}")
+    return val_slider
 
-with col1:
-    ir = st.slider("نرخ بهره فعلی (%)", 0.0, 10.0, 3.75)
-    inf = st.slider("تورم مصرف‌کننده CPI (%)", 0.0, 15.0, 3.0)
-    ppi = st.slider("تورم تولیدکننده PPI (%)", 0.0, 15.0, 3.5)
-    fed_tone = st.radio("لحن فدرال رزرو:", ["شاهین (تند) 🦅", "کبوتر (نرم) 🕊️"])
+# ورودی‌های اصلی
+ir = sync_input("نرخ بهره (%)", 0.0, 10.0, 3.75, 0.25)
+cpi = sync_input("تورم CPI (%)", 0.0, 15.0, 3.0, 0.1)
+ppi = sync_input("تورم PPI (%)", 0.0, 15.0, 3.5, 0.1)
 
-with col2:
-    pmi = st.slider("شاخص مدیران خرید PMI", 30, 70, 48)
-    unemp = st.slider("نرخ بیکاری (%)", 2.0, 10.0, 4.2)
-    m2 = st.slider("رشد نقدینگی M2 (%)", -5.0, 15.0, 2.0)
-    war_risk = st.select_slider("ریسک ژئوپلیتیک", options=["صلح", "تنش", "بحران"])
+# اضافه شدن تراز تجاری (Trade Balance)
+# عدد منفی نشان دهنده کسری تجاری (Deficit) است که برای آمریکا معمول است.
+trade_bal = sync_input("تراز تجاری (میلیارد دلار)", -150.0, 50.0, -57.3, 0.1, "مثبت یعنی مازاد، منفی یعنی کسری تجاری")
+
+jolts = sync_input("JOLTS (میلیون شغل)", 0.0, 15.0, 6.87, 0.01)
+pmi = sync_input("شاخص PMI", 30.0, 70.0, 48.0, 0.5)
 
 st.markdown("---")
-st.subheader("📉 وضعیت بازار اوراق")
-yield_2y = st.number_input("بازده اوراق ۲ ساله (%)", value=4.10, step=0.05)
-yield_10y = st.number_input("بازده اوراق ۱۰ ساله (%)", value=3.90, step=0.05)
-yield_spread = yield_10y - yield_2y
+fed_tone = st.radio("لحن فدرال رزرو (وارش/پاول):", ["شاهین (Hawkish) 🦅", "کبوتر (Doveish) 🕊️"])
+geo_risk = st.select_slider("ریسک ژئوپلیتیک و ناتو", options=["ثبات/صلح", "تنش محدود", "بحران/جنگ"])
 
-if yield_spread < 0:
-    st.warning(f"⚠️ وارونگی منحنی بازدهی ({yield_spread:.2f}%): سیگنال کلاسیک رکود و فشار برای کاهش نرخ بهره!")
-
-# --- بخش سوم: تحلیل هوشمند ---
+# --- محاسبات منطقی ارتقا یافته ---
 st.markdown("---")
-st.header("🧪 خروجی تحلیل و احتمال")
+st.header("📊 خروجی جراحی (پتانسیل بازار)")
 
-# منطق محاسبه با در نظر گرفتن اسپرد اوراق
-prob_score = (unemp * 10) + (50 - pmi) + (5 if fed_tone == "کبوتر (نرم) 🕊️" else -10)
-if yield_spread < 0: prob_score += 15 # وارونگی احتمال کات را بالا می‌برد
+# منطق دلار: بهره بالا + تراز تجاری رو به بهبود + JOLTS بالا = دلار پادشاه
+dxy_logic = (ir * 2) + (5 if fed_tone == "شاهین (Hawkish) 🦅" else -5) + (jolts - 6) + (trade_bal / 20)
+# منطق طلا: تورم بالا + ریسک جنگ - بهره بالا - تراز تجاری قوی (دلار قوی)
+gold_logic = (cpi * 2) + (10 if geo_risk == "بحران/جنگ" else -10) - (ir * 2.5) - (trade_bal / 20)
 
-prob_final = min(max(prob_score, 0), 100)
+c1, c2 = st.columns(2)
+with c1:
+    st.metric("پتانسیل دلار (DXY)", f"{dxy_logic:.1f}", delta="تقویت صادرات" if trade_bal > -55 else "ضعف تجاری", delta_color="normal")
+with c2:
+    st.metric("پتانسیل طلا (XAU)", f"{gold_logic:.1f}", delta="ریزش به ۳۱۰۰" if gold_logic < 0 else "حمایت موقت")
 
-st.subheader(f"احتمال کاهش نرخ در جلسه آینده: {prob_final:.1f}%")
-st.progress(int(prob_final)) # استفاده از int برای جلوگیری از خطا
-
-# تحلیل دارایی‌ها
-dxy_score = (ir * 2) + (5 if fed_tone == "شاهین (تند) 🦅" else -5) - (prob_final * 0.2)
-gold_score = (inf * 2) + (5 if war_risk == "بحران" else -10) - (ir * 3) + (prob_final * 0.1)
-crypto_score = (m2 * 3) + (prob_final * 0.2) - (ir * 2) # تاثیر مستقیم M2 و کاهش نرخ روی کریپتو
-
-col_a, col_b, col_c = st.columns(3)
-with col_a:
-    if dxy_score > 5: st.success("💵 دلار: صعودی")
-    else: st.error("💵 دلار: تحت فشار")
-
-with col_b:
-    if gold_score > 5: st.success("🟡 طلا: صعودی / امن")
-    else: st.error("🟡 طلا: اصلاحی")
-
-with col_c:
-    if crypto_score > 5: st.success("₿ بیت‌کوین/کریپتو: صعودی (تزریق نقدینگی)")
-    else: st.error("₿ کریپتو: نزولی (کمبود نقدینگی)")
-
-# تاثیر ریسک جنگ بر تورم
-if war_risk == "بحران":
-    st.info("🛢️ توجه: ریسک ژئوپلیتیک بالا می‌تواند باعث شوک انرژی شده و CPI را مجدداً بالا ببرد. این موضوع دست فدرال رزرو را برای کاهش نرخ بهره می‌بندد.")
-
-# --- بخش چهارم: گزارش تشریحی ---
+# --- بخش هوش مصنوعی (Gemini Center) ---
 st.markdown("---")
-with st.expander("📝 مشاهده گزارش کالبدشکافی"):
-    report = f"""
-    * **تحلیل PPI vs CPI:** شکاف {ppi - inf:.1f} درصدی نشان می‌دهد که هزینه‌های تولید هنوز کاملاً به مصرف‌کننده منتقل نشده است.
-    * **تحلیل PMI و اشتغال:** عدد {pmi} در کنار بیکاری {unemp}% نشان‌دهنده {'رکود صنعتی' if pmi < 50 else 'رونق صنعتی'} است.
-    * **جریان نقدینگی (M2):** رشد {m2}% نقدینگی {'محرک بازارهای ریسکی مانند سهام و کریپتو' if m2 > 0 else 'موجب خشکی نقدینگی در بازارها'} است.
-    * **استراتژی وارش:** با توجه به احتمال {prob_final:.1f}% کاهش نرخ، بازار در حال قیمت‌گذاری مجدد دارایی‌هاست.
-    """
-    st.write(report)
+st.header("🤖 مرکز تحلیل هوشمند Gemini")
+
+gemini_prompt = f"""
+تحلیل کلان برای ترید در می ۲۰۲۶:
+داده‌ها:
+- نرخ بهره: {ir}% | تورم (CPI): {cpi}% | تورم تولید (PPI): {ppi}%
+- تراز تجاری آمریکا: {trade_bal} میلیارد دلار (Trade Balance)
+- بازار کار (JOLTS): {jolts} میلیون شغل
+- شاخص تولید (PMI): {pmi} | لحن فدرال رزرو: {fed_tone}
+- ریسک ژئوپلیتیک: {geo_risk}
+
+سوالات تخصصی برای تحلیل:
+۱. با توجه به تراز تجاری {trade_bal} میلیارد دلاری، آیا تقاضای فیزیکی برای دلار جهت بازسازی و صادرات تسلیحات ناتو تأمین می‌شود؟
+۲. آیا عدد {jolts} میلیونی JOLTS به کوین وارش اجازه جراحی و کاهش نرخ را می‌دهد یا او را در موضع شاهین نگه می‌دارد؟
+۳. روند انس طلا با توجه به فشار دلار و کاهش هزینه‌های ناتو به سمت ۳۱۰۰ دلار است یا خیر؟
+"""
+
+st.text_area("پرومپت آماده (کپی کن):", gemini_prompt, height=250)
+
+if st.button("🚀 انتقال به Gemini"):
+    encoded_prompt = urllib.parse.quote(gemini_prompt)
+    # لینک مستقیم به اپلیکیشن جمینای
+    st.markdown(f'<a href="https://gemini.google.com/app" target="_blank">۱. اینجا کلیک کن و در جمینای Paste کن</a>', unsafe_allow_html=True)
+
+st.info(f"💡 تحلیل جراح: تراز تجاری فعلی تو ({trade_bal}) نشان می‌دهد که آمریکا {'هنوز در حال خروج نقدینگی است' if trade_bal < -60 else 'در حال بهبود وضعیت صادرات است'}. بهبود این عدد مستقیماً قیمت طلا را سرکوب می‌کند.")
